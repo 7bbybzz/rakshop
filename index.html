@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>rak.tf</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Space+Mono:wght@400;700&family=Roboto+Mono:wght@400;700&display=swap');
+    
+    :root {
+      --red: #C41E3A;
+      --black: #0B0B0B;
+      --dark: #121212;
+      --darker: #0A0A0A;
+      --glow: 0 0 25px rgba(196,30,58,0.6);
+      --transition: 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+      --fast: 0.3s ease-out;
+      --border: 1px solid rgba(196,30,58,0.3);
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body, html { height:100%; overflow:hidden; font-family:'Space Mono',monospace; background:var(--black); color:# illumination: #fff; }
+    #app { position:relative; width:100%; height:100%; perspective:1500px; overflow:hidden; }
+    .page { position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; visibility:hidden; transform:translateX(100%); transition:opacity var(--transition), transform var(--transition), visibility var(--transition); display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:16px; }
+    .page.active { opacity:1; visibility:visible; transform:translateX(0); z-index:10; }
+    .page.prev { transform:translateX(-100%); }
+    .container { background:var(--dark); border-radius:16px; padding:28px; max-width:480px; width:100%; box-shadow:var(--glow), 0 30px 60px rgba(0,0,0,0.8); backdrop-filter:blur(16px); border:var(--border); position:relative; }
+    .container::before { content:''; position:absolute; inset:0; border-radius:16px; padding:2px; background:linear-gradient(45deg, transparent, var(--red), transparent); -webkit-mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite:xor; mask-composite:exclude; pointer-events:none; opacity:0.6; }
+    h1 { font-family:'Orbitron',sans-serif; text-align:center; margin-bottom:16px; color:var(--red); text-shadow:0 0 16px var(--red); font-size:2.8rem; letter-spacing:6px; }
+    h2 { font-family:'Space Mono',monospace; color:#fff; margin-bottom:20px; font-size:1.6rem; text-align:center; }
+    .nav { position:fixed; top:18px; right:18px; z-index:100; display:flex; gap:12px; }
+    .icon-btn { background:var(--darker); border:var(--border); width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; transition:var(--fast); cursor:pointer; }
+    .icon-btn:hover { background:var(--red); transform:scale(1.08); box-shadow:var(--glow); }
+    .icon { width:24px; height:24px; fill:#999; transition:var(--fast); }
+    .icon-btn:hover .icon { fill:#fff; }
+    .card-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:18px; margin:24px 0; max-height:58vh; overflow-y:auto; padding:12px; scrollbar-width:thin; scrollbar-color:var(--red) transparent; }
+    .card-item { background:var(--darker); border-radius:14px; padding:18px; text-align:center; cursor:pointer; position:relative; overflow:hidden; transition:all 0.4s ease-out; border:var(--border); opacity:0; }
+    .card-item.show { opacity:1; }
+    .card-item:hover { transform:translateY(-10px); box-shadow:var(--glow), 0 25px 50px rgba(196,30,58,0.4); }
+    .card-item .price { color:var(--red); font-weight:700; font-size:1.3rem; text-shadow:0 0 12px var(--red); }
+    .card-item .bin { font-family:'Roboto Mono',monospace; font-size:0.9rem; color:#777; cursor:pointer; }
+    .btn { background:var(--red); color:#fff; border:none; padding:14px 28px; border-radius:12px; font-weight:700; cursor:pointer; transition:var(--fast); position:relative; overflow:hidden; width:100%; margin-top:18px; font-size:1.1rem; font-family:'Space Mono',monospace; }
+    .btn:hover { background:#e63946; transform:translateY(-4px); box-shadow:var(--glow); }
+    .btn:disabled { background:#333; cursor:not-allowed; opacity:0.6; }
+    .btn-remove { background:#222; color:#ff6666; padding:6px 12px; font-size:0.8rem; margin-left:10px; border-radius:8px; }
+    .cart-icon { position:fixed; bottom:20px; right:20px; background:var(--red); width:70px; height:70px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:var(--glow); cursor:pointer; z-index:99; transition:var(--fast); border:2px solid rgba(255,255,255,0.2); }
+    .cart-icon:hover { transform:scale(1.12); }
+    .cart-count { position:absolute; top:-8px; right:-8px; background:#000; color:var(--red); width:28px; height:28px; border-radius:50%; font-size:0.8rem; display:flex; align-items:center; justify-content:center; font-weight:700; }
+    .input-group { margin:18px 0; }
+    .input-group input { width:100%; padding:16px; background:var(--darker); border:var(--border); border-radius:12px; color:#fff; font-size:1.05rem; transition:0.3s; font-family:'Roboto Mono',monospace; }
+    .input-group input:focus { outline:none; border-color:var(--red); box-shadow:0 0 16px rgba(196,30,58,0.6); }
+    .invoice { background:var(--darker); padding:26px; border-radius:16px; border:var(--border); font-family:'Roboto Mono',monospace; }
+    .invoice h3 { margin:0 0 18px; color:var(--red); text-align:center; font-size:1.5rem; }
+    .invoice .line { height:1px; background:linear-gradient(90deg, transparent, #444, transparent); margin:14px 0; }
+    .invoice .item { padding:8px 0; display:flex; justify-content:space-between; font-size:0.95rem; }
+    .invoice .total { font-weight:700; font-size:1.35rem; margin:18px 0; display:flex; justify-content:space-between; color:var(--red); }
+    .invoice .btc { margin:18px 0; text-align:center; color:#0f0; font-weight:700; }
+    .invoice .addr { display:block; background:#000; padding:14px; border-radius:10px; word-break:break-all; margin:14px 0; font-size:0.9rem; border:1px dashed #444; }
+    .loader { position:fixed; top:0; left:0; width:100%; height:100%; background:var(--black); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:999; }
+    .tag { background:#222; color:#aaa; padding:4px 10px; border-radius:6px; font-size:0.75rem; font-weight:700; }
+    .tag.non-vbv { background:var(--red); color:#fff; }
+    .tag.hot { background:#ff0; color:#000; }
+    .tag.new { background:#000; color:#ff0; padding:4px 8px; font-size:0.7rem; }
+    .card-3d { width:100%; height:200px; position:relative; transform-style:preserve-3d; transition:0.8s ease; margin-bottom:24px; border-radius:14px; overflow:hidden; border:var(--border); }
+    .card-3d:hover { transform:rotateY(180deg); }
+    .front, .back { position:absolute; backface-visibility:hidden; background:linear-gradient(135deg,#1a1a1a,#2a2a2a); border-radius:14px; padding:20px; color:#fff; width:100%; height:100%; }
+    .back { transform:rotateY(180deg); background:linear-gradient(135deg,#2a2a2a,#1a1a1a); }
+    .logo-svg { width:50px; height:32px; background:#fff; border-radius:6px; }
+    .chip { width:50px; height:32px; background:#ffd700; border-radius:6px; }
+    .bundle-offer { background:var(--darker); border:1px dashed var(--red); padding:14px; border-radius:12px; margin:14px 0; text-align:center; color:#0f0; font-weight:700; display:none; }
+    .bundle-offer.active { display:block; }
+    .cart-item-controls { display:flex; align-items:center; gap:10px; margin-top:8px; }
+    .qty-btn { background:#333; color:#fff; border:none; width:34px; height:34px; border-radius:50%; font-weight:700; cursor:pointer; transition:var(--fast); }
+    .qty-btn:hover { background:var(--red); transform:scale(1.1); }
+    .search-bar { width:100%; padding:16px; background:var(--darker); border:var(--border); border-radius:12px; color:#fff; margin-bottom:18px; font-size:1.05rem; transition:0.4s; font-family:'Roboto Mono',monospace; }
+    .search-bar:focus { outline:none; box-shadow:0 0 18px var(--red); }
+    .card-tags { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; justify-content:center; }
+    .copy-feedback { position:fixed; bottom:90px; right:22px; background:#0f0; color:#000; padding:10px 16px; border-radius:12px; font-size:0.9rem; opacity:0; transition:0.4s; font-weight:700; }
+    .copy-feedback.show { opacity:1; }
+    .bulk-hint { font-size:0.8rem; color:#666; margin-top:8px; text-align:center; }
+    .quick-add { display:flex; gap:12px; margin-top:16px; justify-content:center; }
+    .quick-btn { background:var(--darker); color:#fff; border:var(--border); padding:10px 16px; border-radius:10px; font-size:0.9rem; cursor:pointer; transition:var(--fast); font-weight:700; }
+    .quick-btn:hover { background:var(--red); transform:scale(1.05); }
+    .cat-btn { background:var(--darker); color:#aaa; border:var(--border); padding:10px 18px; border-radius:10px; font-size:0.95rem; cursor:pointer; transition:var(--fast); font-weight:700; }
+    .cat-btn.active { background:var(--red); color:#fff; border-color:var(--red); box-shadow:var(--glow); }
+    .cat-btn:hover { border-color:var(--red); }
+    .you-save { font-size:0.95rem; color:#0f0; text-align:right; margin-top:10px; font-weight:700; }
+    .support-btn { position:fixed; bottom:20px; left:20px; background:var(--red); width:60px; height:60px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:var(--glow); cursor:pointer; z-index:99; font-size:1.9rem; color:#fff; border:2px solid rgba(255,255,255,0.2); }
+    .support-modal { position:fixed; bottom:90px; left:20px; width:320px; background:var(--darker); border-radius:16px; padding:18px; box-shadow:0 15px 35px rgba(0,0,0,0.9); display:none; flex-direction:column; z-index:300; border:var(--border); }
+    .support-modal.active { display:flex; }
+    .support-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+    .support-agent { font-size:0.9rem; color:#0f0; font-weight:700; }
+    .support-close { cursor:pointer; color:#aaa; font-size:1.3rem; }
+    .support-chat { height:220px; overflow-y:auto; margin-bottom:12px; font-size:0.9rem; }
+    .support-msg { margin:8px 0; padding:10px 14px; border-radius:12px; max-width:80%; }
+    .support-msg.user { background:var(--red); color:#fff; align-self:flex-end; margin-left:auto; }
+    .support-msg.agent { background:#222; color:#fff; }
+    .balance-modal { position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:var(--darker); border-radius:16px; padding:24px; box-shadow:0 15px 35px rgba(0,0,0,0.9); display:none; z-index:300; width:300px; text-align:center; border:var(--border); }
+    .balance-modal.active { display:block; }
+    .balance-close { position:absolute; top:12px; right:12px; cursor:pointer; color:#aaa; font-size:1.3rem; }
+    .balance-value { font-family:'Roboto Mono',monospace; font-size:1.8rem; color:#0f0; margin:14px 0; font-weight:700; }
+    .limit-warning { color:#ff6666; font-weight:700; margin-top:10px; text-align:center; font-size:0.9rem; }
+    .order-id { font-family:'Roboto Mono',monospace; color:#0f0; margin:14px 0; font-weight:700; }
+    .email-sent { color:#0f0; font-weight:700; margin-top:14px; text-align:center; }
+    .history-btn { position:fixed; top:18px; left:18px; background:var(--darker); border:var(--border); width:60px; height:60px; border-radius:16px; display:flex; align-items:center; justify-content:center; box-shadow:var(--glow); cursor:pointer; z-index:99; transition:var(--fast); }
+    .history-btn:hover { background:var(--red); transform:scale(1.08); }
+    .history-modal { position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:var(--darker); border-radius:16px; padding:24px; box-shadow:0 15px 35px rgba(0,0,0,0.9); display:none; z-index:300; width:90%; max-width:520px; max-height:80vh; overflow-y:auto; border:var(--border); }
+    .history-modal.active { display:block; }
+    .history-close { position:absolute; top:12px; right:12px; cursor:pointer; color:#aaa; font-size:1.3rem; }
+    .history-item { background:#1a1a1a; padding:16px; border-radius:12px; margin-bottom:14px; font-family:'Roboto Mono',monospace; border-left:4px solid var(--red); }
+    .history-item .date { color:#aaa; font-size:0.85rem; }
+    .history-item .status { color:#0f0; font-weight:700; }
+    .history-item .status.pending { color:#ff0; }
+    .history-item .status.failed { color:#ff6666; }
+    .checkout-header { background:var(--darker); padding:18px; border-radius:12px; margin-bottom:20px; text-align:center; border:var(--border); }
+    .checkout-header h3 { color:var(--red); margin:0; }
+    .checkout-summary { background:#1a1a1a; padding:16px; border-radius:12px; margin-bottom:20px; }
+    .checkout-summary .line { display:flex; justify-content:space-between; padding:6px 0; }
+    .checkout-summary .total { font-weight:700; color:var(--red); font-size:1.2rem; }
+    .btc-invoice-header { background:linear-gradient(135deg, #1a1a1a, #0f0f0f); padding:20px; border-radius:12px 12px 0 0; text-align:center; border-bottom:var(--border); }
+    .btc-invoice-header h3 { color:var(--red); margin:0; font-size:1.6rem; }
+    .btc-invoice-body { background:var(--darker); padding:24px; border-radius:0 0 12px 12px; }
+    .qr-container { background:#fff; padding:12px; border-radius:12px; display:inline-block; margin:16px auto; }
+    @media (max-width:768px) {
+      .container { padding:20px; }
+      .card-grid { grid-template-columns:repeat(2,1fr); }
+      h1 { font-size:2.2rem; }
+      h2 { font-size:1.4rem; }
+    }
+  </style>
+</head>
+<body>
+  <!-- LOADER -->
+  <div id="loader" class="loader">
+    <h1>rak.tf</h1>
+    <p style="color:#666; margin-top:12px; font-family:'Roboto Mono',monospace;">initializing vault...</p>
+  </div>
+
+  <!-- COPY FEEDBACK -->
+  <div id="copy-feedback" class="copy-feedback">COPIED!</div>
+
+  <div id="app">
+    <!-- NAV -->
+    <div class="nav">
+      <button id="home-btn" class="icon-btn">
+        <svg viewBox="0 0 24 24" class="icon"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" fill="currentColor"/></svg>
+      </button>
+    </div>
+
+    <!-- HISTORY BUTTON -->
+    <div class="history-btn" id="history-btn">
+      <svg viewBox="0 0 24 24" style="width:28px; height:28px; fill:#fff;"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12V9c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21a9 9 0 0 0 0-18z"/></svg>
+    </div>
+
+    <!-- SUPPORT BUTTON -->
+    <div class="support-btn" id="support-btn">?</div>
+    <div id="support-modal" class="support-modal">
+      <div class="support-header">
+        <div class="support-agent">RAK.TF SUPPORT</div>
+        <div class="support-close" id="support-close">×</div>
+      </div>
+      <div id="support-chat" class="support-chat">
+        <div class="support-msg agent">Send email for verification.</div>
+      </div>
+      <div class="support-input">
+        <input type="text" id="support-input" placeholder="type message..." />
+        <button id="support-send">SEND</button>
+      </div>
+    </div>
+
+    <!-- BALANCE MODAL -->
+    <div id="balance-modal" class="balance-modal">
+      <div class="balance-close" id="balance-close">×</div>
+      <div id="balance-content"></div>
+      <button class="btn" id="copy-balance">COPY BALANCE</button>
+    </div>
+
+    <!-- PAYMENT HISTORY MODAL -->
+    <div id="history-modal" class="history-modal">
+      <div class="history-close" id="history-close">×</div>
+      <h3 style="color:var(--red); text-align:center; margin-bottom:18px; font-size:1.6rem;">PAYMENT HISTORY</h3>
+      <div id="history-list"></div>
+    </div>
+
+    <!-- PAGES -->
+    <section id="home" class="page active">
+      <div class="container">
+        <h1>RAK.TF</h1>
+        <p style="text-align:center; color:#666; margin-bottom:24px; font-family:'Roboto Mono',monospace; font-size:0.95rem;">ELITE CARD MARKETPLACE</p>
+        <button class="btn" id="enter-shop">ENTER VAULT</button>
+      </div>
+    </section>
+
+    <section id="shop" class="page">
+      <div class="container" style="max-width:960px;">
+        <h2>INVENTORY</h2>
+        <input type="text" id="search-bar" class="search-bar" placeholder="SEARCH BIN / COUNTRY..." />
+        <div id="categories" style="display:flex; gap:12px; margin:18px 0; flex-wrap:wrap; justify-content:center;">
+          <button class="cat-btn" data-cat="all">ALL</button>
+          <button class="cat-btn" data-cat="hot">HOT</button>
+          <button class="cat-btn" data-cat="budget">BUDGET</button>
+          <button class="cat-btn" data-cat="non-vbv">NON-VBV</button>
+          <button class="cat-btn" data-cat="usa">USA</button>
+          <button class="cat-btn" data-cat="eu">EU</button>
+          <button class="cat-btn" data-cat="uk">UK</button>
+          <button class="cat-btn" data-cat="ca">CA</button>
+          <button class="cat-btn" data-cat="au">AU</button>
+        </div>
+        <div id="card-grid" class="card-grid"></div>
+      </div>
+    </section>
+
+    <section id="detail" class="page">
+      <div class="container">
+        <div id="card-preview">
+          <div id="card-3d" class="card-3d">
+            <div class="front">
+              <div style="display:flex; justify-content:space-between;">
+                <div class="logo-svg"></div>
+                <div class="chip"></div>
+              </div>
+              <div style="font-family:'Roboto Mono',monospace; letter-spacing:3px; margin:24px 0; font-size:1.3rem;" id="front-num">•••• •••• •••• ••••</div>
+              <div style="display:flex; justify-content:space-between; font-size:0.9rem;">
+                <div>CARD HOLDER</div>
+                <div>••/••</div>
+              </div>
+            </div>
+            <div class="back">
+              <div style="background:#000; height:48px; margin:24px 0;"></div>
+              <div style="background:#333; height:38px; display:flex; align-items:center; padding:0 14px; justify-content:flex-end; gap:14px;">
+                <span style="color:#fff; font-size:0.95rem;">CVV:</span>
+                <div style="background:#fff; color:#000; padding:4px 12px; border-radius:6px; font-family:'Roboto Mono',monospace; font-weight:700;">•••</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-tags" id="card-tags"></div>
+        <div id="balance-display" style="margin:14px 0; font-family:'Roboto Mono',monospace; font-size:1.1rem; color:#0f0; text-align:center;"></div>
+        <div class="bulk-hint">HOLD CARD IN SHOP TO ADD 5</div>
+        <div class="quick-add">
+          <button class="quick-btn" id="quick-1">+1</button>
+          <button class="quick-btn" id="quick-5">+5</button>
+          <button class="quick-btn" id="quick-10">+10</button>
+        </div>
+        <button class="btn" id="check-balance">CHECK BALANCE</button>
+        <button class="btn" id="add-to-cart">ADD TO CART</button>
+      </div>
+    </section>
+
+    <section id="cart" class="page">
+      <div class="cart-container">
+        <h2>CART</h2>
+        <div id="you-save" class="you-save"></div>
+        <div id="cart-items"></div>
+        <div id="bundle-offer" class="bundle-offer">ADD 1 MORE → 3RD CARD FOR $5!</div>
+        <div style="border-top:1px dashed #444; padding-top:18px; margin-top:18px;">
+          <div style="display:flex; justify-content:space-between; font-weight:700; font-size:1.4rem; font-family:'Roboto Mono',monospace;">
+            <span>TOTAL:</span>
+            <span id="cart-total">$0.00</span>
+          </div>
+          <div id="checkout-warning" class="limit-warning" style="display:none;">MINIMUM $20 REQUIRED TO CHECKOUT</div>
+          <button class="btn" id="checkout-btn" disabled>CHECKOUT</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="checkout" class="page">
+      <div class="container">
+        <div class="checkout-header">
+          <h3>FINAL STEP</h3>
+        </div>
+        <div class="checkout-summary">
+          <div class="line"><span>Subtotal</span><span id="subtotal">$0.00</span></div>
+          <div class="line"><span>Discount</span><span id="discount">$0.00</span></div>
+          <div class="line total"><span>TOTAL</span><span id="final-total">$0.00</span></div>
+        </div>
+        <div class="input-group">
+          <input type="email" id="chk-email" placeholder="EMAIL FOR DELIVERY" />
+        </div>
+        <button class="btn" id="confirm-purchase">GENERATE INVOICE</button>
+      </div>
+    </section>
+
+    <section id="btc-invoice" class="page">
+      <div class="container" style="max-width:500px;">
+        <div class="btc-invoice-header">
+          <h3>RAK.TF INVOICE</h3>
+        </div>
+        <div class="btc-invoice-body">
+          <div class="order-id">ORDER ID: <span id="order-id">RAK-XXXXX</span></div>
+          <div class="line"></div>
+          <div id="inv-items"></div>
+          <div id="inv-save" class="you-save" style="margin:10px 0;"></div>
+          <div class="total">TOTAL: <strong id="inv-total">$0.00</strong></div>
+          <div class="line"></div>
+          <div class="btc">PAY EXACTLY: <code id="btc-amt">0.00000000 BTC</code></div>
+          <div class="qr-container">
+            <canvas id="qr-canvas" width="180" height="180"></canvas>
+          </div>
+          <code class="addr" id="btc-addr">1NtpN3aPZowqEzX16E5cMUHQ16P9KHQtiy</code>
+          <button class="btn" id="copy-btc">COPY ADDRESS</button>
+          <div class="email-sent">CARDS SENT TO: <span id="delivery-email"></span></div>
+          <div style="text-align:center; font-size:0.75rem; color:#666; margin-top:16px; font-family:'Roboto Mono',monospace;">RAK.TF — ELITE DUMPS</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CART ICON -->
+    <div class="cart-icon" id="cart-icon">
+      <svg viewBox="0 0 24 24" style="width:38px; height:38px; fill:#fff;"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12L8.1 13h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/></svg>
+      <div class="cart-count" id="cart-count" style="display:none;">0</div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js"></script>
+  <script>
+    const state = { 
+      page: 'home', 
+      cart: [], 
+      cards: [], 
+      selected: null, 
+      invoiceNum: 1, 
+      credit: 0, 
+      views: {}, 
+      orderId: '', 
+      email: '',
+      history: JSON.parse(localStorage.getItem('rak_history') || '[]')
+    };
+    const BTC = '1NtpN3aPZowqEzX16E5cMUHQ16P9KHQtiy';
+    const BTC_PRICE = 60000;
+    const MIN_CHECKOUT = 20; // $20 MINIMUM TO CHECKOUT
+
+    setTimeout(() => {
+      document.getElementById('loader').remove();
+    }, 1800);
+
+    function goTo(id) {
+      const current = document.querySelector('.page.active');
+      const next = document.getElementById(id);
+      if (current) current.classList.add('prev');
+      setTimeout(() => {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active', 'prev'));
+        next.classList.add('active');
+      }, 300);
+      state.page = id;
+      if (id === 'shop') renderCards();
+      if (id === 'cart') renderCart();
+      if (id === 'detail') showCard();
+      if (id === 'btc-invoice') generateInvoice();
+      if (id === 'checkout') updateCheckoutSummary();
+    }
+
+    function genBalance(price) {
+      if (price <= 15) return Math.floor(Math.random() * 1000) + 1;
+      if (price <= 65) return Math.floor(Math.random() * 2500) + 1000;
+      return Math.floor(Math.random() * 6500) + 3500;
+    }
+
+    function genRealBIN() {
+      const issuers = [
+        { prefix: '4', length: 6 }, { prefix: '51', length: 6 }, { prefix: '52', length: 6 },
+        { prefix: '53', length: 6 }, { prefix: '54', length: 6 }, { prefix: '55', length: 6 },
+        { prefix: '34', length: 6 }, { prefix: '37', length: 6 }, { prefix: '6011', length: 6 }, { prefix: '65', length: 6 }
+      ];
+      const issuer = issuers[Math.floor(Math.random() * issuers.length)];
+      const base = issuer.prefix;
+      const remaining = issuer.length - base.length;
+      const randomPart = Math.floor(Math.random() * Math.pow(10, remaining));
+      return parseInt(base + String(randomPart).padStart(remaining, '0'));
+    }
+
+    function genCard() {
+      const countries = ['usa','eu','uk','ca','au'];
+      const country = countries[Math.floor(Math.random() * countries.length)];
+      let price = (Math.random() * 144 + 3).toFixed(2);
+      let isNonVbv = Math.random() < 0.4;
+      if (isNonVbv) price = (65 + Math.random() * 82).toFixed(2);
+      const balance = genBalance(parseFloat(price));
+      const id = Date.now() + Math.random();
+      const isBudget = parseFloat(price) <= 15;
+      const isNew = Math.random() < 0.12 && isBudget;
+      const views = state.views[id] || 0;
+      const bin = genRealBIN();
+      return { id, bin, price: parseFloat(price), country, type: isNonVbv ? 'non-vbv' : 'standard', balance, isBudget, isNew, isNonVbv, views };
+    }
+
+    function renderCards(filter = 'all', search = '') {
+      state.cards = Array.from({length: 250}, genCard);
+      const grid = document.getElementById('card-grid'); grid.innerHTML = '';
+      let filtered = state.cards;
+
+      if (filter === 'hot') filtered = filtered.sort((a,b) => b.views - a.views).slice(0,50);
+      else if (filter === 'budget') filtered = filtered.filter(c => c.isBudget);
+      else if (filter === 'non-vbv') filtered = filtered.filter(c => c.isNonVbv);
+      else if (filter !== 'all') filtered = filtered.filter(c => c.country === filter);
+
+      if (search) {
+        const term = search.toLowerCase();
+        filtered = filtered.filter(c => c.bin.toString().startsWith(term) || c.country.toLowerCase().includes(term));
+      }
+
+      filtered.forEach((c, i) => {
+        const el = document.createElement('div'); el.className = 'card-item';
+        let tags = '';
+        if (c.isNew) tags += '<div class="tag new">NEW</div>';
+        if (c.isNonVbv) tags += '<div class="tag non-vbv">NON-VBV</div>';
+        if (c.views > 3 && filter !== 'hot') tags += '<div class="tag hot">HOT</div>';
+        el.innerHTML = `<div class="bin" data-full="${c.bin}">${c.bin.toString().slice(0,6)}xx</div>${tags}<div class="price">$${c.price}</div>`;
+        setTimeout(() => el.classList.add('show'), i * 15);
+        
+        let holdTimer;
+        el.onmousedown = () => holdTimer = setTimeout(() => addBulk(c), 800);
+        el.onmouseup = el.onmouseleave = () => clearTimeout(holdTimer);
+        el.onclick = (e) => { 
+          if (e.detail === 1) { 
+            state.selected = c; 
+            state.views[c.id] = (state.views[c.id] || 0) + 1;
+            goTo('detail'); 
+          } 
+        };
+
+        el.querySelector('.bin').onclick = (ev) => {
+          ev.stopPropagation();
+          navigator.clipboard.writeText(ev.target.dataset.full);
+          const fb = document.getElementById('copy-feedback');
+          fb.classList.add('show');
+          setTimeout(() => fb.classList.remove('show'), 1500);
+        };
+        
+        grid.appendChild(el);
+      });
+    }
+
+    function addBulk(card) {
+      const existing = state.cart.find(i => i.id === card.id);
+      if (existing) existing.qty += 5; else state.cart.push({...card, qty:5});
+      updateCart();
+    }
+
+    function showCard() {
+      const c = state.selected;
+      document.getElementById('front-num').textContent = `${c.bin}xxxx xxxx xxxx`;
+      const tags = document.getElementById('card-tags');
+      tags.innerHTML = `<div class="tag">${c.country.toUpperCase()}</div><div class="tag">${c.type.toUpperCase()}</div>`;
+      if (c.isNew) tags.innerHTML += '<div class="tag new">NEW</div>';
+      if (state.views[c.id] > 3) tags.innerHTML += '<div class="tag hot">HOT</div>';
+      document.getElementById('balance-display').textContent = '';
+    }
+
+    document.getElementById('check-balance').onclick = () => {
+      const c = state.selected;
+      const bal = c.balance;
+      const modal = document.getElementById('balance-modal');
+      const content = document.getElementById('balance-content');
+      content.innerHTML = `<div class="balance-value">$${bal}</div>${bal < 100 ? '<div style="color:#ff6666; font-weight:700;">(LOW BAL)</div>' : ''}`;
+      modal.classList.add('active');
+    };
+
+    document.getElementById('balance-close').onclick = () => {
+      document.getElementById('balance-modal').classList.remove('active');
+    };
+
+    document.getElementById('copy-balance').onclick = () => {
+      navigator.clipboard.writeText(state.selected.balance);
+      const fb = document.getElementById('copy-feedback');
+      fb.classList.add('show');
+      setTimeout(() => fb.classList.remove('show'), 1500);
+    };
+
+    document.getElementById('add-to-cart').onclick = () => {
+      const existing = state.cart.find(i => i.id === state.selected.id);
+      if (existing) existing.qty++; else state.cart.push({...state.selected, qty:1});
+      updateCart();
+    };
+
+    document.getElementById('quick-1').onclick = () => addQty(1);
+    document.getElementById('quick-5').onclick = () => addQty(5);
+    document.getElementById('quick-10').onclick = () => addQty(10);
+
+    function addQty(qty) {
+      const existing = state.cart.find(i => i.id === state.selected.id);
+      if (existing) existing.qty += qty; else state.cart.push({...state.selected, qty});
+      updateCart();
+    }
+
+    function updateCart() {
+      const items = document.getElementById('cart-items'); items.innerHTML = '';
+      let total = 0;
+      let bundleDiscount = 0;
+      let save = 0;
+
+      state.cart.forEach((i, idx) => {
+        const itemPrice = i.price * i.qty;
+        if (state.cart.length === 3 && idx === 2) {
+          bundleDiscount = itemPrice - 5;
+          save += bundleDiscount;
+        }
+        total += itemPrice - (idx === 2 && state.cart.length === 3 ? bundleDiscount : 0);
+
+        const el = document.createElement('div'); 
+        el.style = 'background:#1a1a1a; padding:16px; border-radius:12px; margin-bottom:14px; border-left:4px solid var(--red);';
+        el.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong style="font-family:'Roboto Mono',monospace;">${i.bin}xx ×${i.qty} — $${(i.price * i.qty).toFixed(2)}${idx === 2 && state.cart.length === 3 ? ' → $5' : ''}</strong>
+            <button class="btn-remove" data-id="${idx}">×</button>
+          </div>
+          <div class="cart-item-controls">
+            <button class="qty-btn" data-id="${idx}" data-dir="-1">−</button>
+            <span style="font-weight:700;">${i.qty}</span>
+            <button class="qty-btn" data-id="${idx}" data-dir="1">+</button>
+          </div>
+        `;
+        items.appendChild(el);
+      });
+
+      const finalTotal = Math.max(0, total - state.credit);
+      document.getElementById('cart-total').textContent = `$${finalTotal.toFixed(2)}`;
+      document.getElementById('bundle-offer').classList.toggle('active', state.cart.length === 2);
+      const count = state.cart.reduce((s,i) => s + i.qty, 0);
+      const badge = document.getElementById('cart-count');
+      badge.textContent = count;
+      badge.style.display = count > 0 ? 'flex' : 'none';
+
+      const saveText = save > 0 ? `YOU SAVE: $${save.toFixed(2)}` : '';
+      document.getElementById('you-save').textContent = saveText;
+
+      const checkoutBtn = document.getElementById('checkout-btn');
+      const warning = document.getElementById('checkout-warning');
+
+      // MINIMUM $20 TO CHECKOUT
+      if (finalTotal < MIN_CHECKOUT) {
+        checkoutBtn.disabled = true;
+        warning.style.display = 'block';
+        warning.textContent = 'MINIMUM $20 REQUIRED TO CHECKOUT';
+      } else {
+        checkoutBtn.disabled = false;
+        warning.style.display = 'none';
+      }
+
+      localStorage.setItem('rak_cart', JSON.stringify(state.cart));
+
+      document.querySelectorAll('.btn-remove').forEach(btn => {
+        btn.onclick = () => {
+          state.cart.splice(btn.dataset.id, 1);
+          updateCart();
+        };
+      });
+      document.querySelectorAll('.qty-btn').forEach(btn => {
+        btn.onclick = () => {
+          const idx = btn.dataset.id;
+          const dir = parseInt(btn.dataset.dir);
+          if (state.cart[idx].qty + dir > 0) {
+            state.cart[idx].qty += dir;
+            updateCart();
+          }
+        };
+      });
+    }
+
+    function updateCheckoutSummary() {
+      let total = 0;
+      let bundleDiscount = 0;
+      let save = 0;
+      state.cart.forEach((i, idx) => {
+        const itemPrice = i.price * i.qty;
+        if (state.cart.length === 3 && idx === 2) {
+          bundleDiscount = itemPrice - 5;
+          save += bundleDiscount;
+        }
+        total += itemPrice - (idx === 2 && state.cart.length === 3 ? bundleDiscount : 0);
+      });
+      const finalTotal = Math.max(0, total - state.credit);
+      document.getElementById('subtotal').textContent = `$${total.toFixed(2)}`;
+      document.getElementById('discount').textContent = `-$${(state.credit + save).toFixed(2)}`;
+      document.getElementById('final-total').textContent = `$${finalTotal.toFixed(2)}`;
+    }
+
+    function generateInvoice() {
+      let total = 0;
+      let bundleDiscount = 0;
+      let save = 0;
+      state.cart.forEach((i, idx) => {
+        const itemPrice = i.price * i.qty;
+        if (state.cart.length === 3 && idx === 2) {
+          bundleDiscount = itemPrice - 5;
+          save += bundleDiscount;
+        }
+        total += itemPrice - (idx === 2 && state.cart.length === 3 ? bundleDiscount : 0);
+      });
+      const finalTotal = Math.max(0, total - state.credit);
+      const btcAmt = (finalTotal / BTC_PRICE).toFixed(8);
+      const orderId = `RAK-${String(state.invoiceNum).padStart(5, '0')}`;
+      const date = new Date().toLocaleString();
+      state.orderId = orderId;
+      state.email = document.getElementById('chk-email').value;
+
+      document.getElementById('order-id').textContent = orderId;
+      document.getElementById('delivery-email').textContent = state.email;
+
+      const items = document.getElementById('inv-items'); items.innerHTML = '';
+      state.cart.forEach((i, idx) => {
+        const div = document.createElement('div'); div.className = 'item';
+        const price = idx === 2 && state.cart.length === 3 ? '$5.00' : `$${(i.price * i.qty).toFixed(2)}`;
+        div.innerHTML = `<span>${i.country.toUpperCase()} BIN ${i.bin}xx ×${i.qty}</span><span>${price}</span>`;
+        items.appendChild(div);
+      });
+      const saveText = save > 0 ? `YOU SAVE: $${save.toFixed(2)}` : '';
+      document.getElementById('inv-save').textContent = saveText;
+      document.getElementById('inv-total').textContent = `$${finalTotal.toFixed(2)}`;
+      document.getElementById('btc-amt').textContent = `${btcAmt} BTC`;
+      QRCode.toCanvas(document.getElementById('qr-canvas'), `bitcoin:${BTC}?amount=${btcAmt}&label=${orderId}`, { width: 180 });
+
+      const historyEntry = {
+        id: orderId,
+        date,
+        amount: finalTotal,
+        btc: btcAmt,
+        status: 'pending',
+        items: state.cart.map(i => ({ bin: i.bin, qty: i.qty }))
+      };
+      state.history.unshift(historyEntry);
+      localStorage.setItem('rak_history', JSON.stringify(state.history.slice(0, 50)));
+      state.invoiceNum++;
+    }
+
+    function renderHistory() {
+      const list = document.getElementById('history-list');
+      list.innerHTML = '';
+      if (state.history.length === 0) {
+        list.innerHTML = '<p style="color:#666; text-align:center; font-family:\'Roboto Mono\',monospace;">NO PAYMENTS YET</p>';
+        return;
+      }
+      state.history.forEach(h => {
+        const el = document.createElement('div');
+        el.className = 'history-item';
+        el.innerHTML = `
+          <div class="date">${h.date}</div>
+          <div><strong>${h.id}</strong> — $${h.amount} (${h.btc} BTC)</div>
+          <div class="status ${h.status}">${h.status.toUpperCase()}</div>
+        `;
+        list.appendChild(el);
+      });
+    }
+
+    // Events
+    document.getElementById('history-btn').onclick = () => { renderHistory(); document.getElementById('history-modal').classList.add('active'); };
+    document.getElementById('history-close').onclick = () => document.getElementById('history-modal').classList.remove('active');
+    document.getElementById('enter-shop').onclick = () => goTo('shop');
+    document.getElementById('home-btn').onclick = () => goTo('home');
+    document.getElementById('cart-icon').onclick = () => goTo('cart');
+    document.getElementById('checkout-btn').onclick = () => goTo('checkout');
+    document.getElementById('confirm-purchase').onclick = () => {
+      if (document.getElementById('chk-email').value) goTo('btc-invoice');
+    };
+    document.getElementById('copy-btc').onclick = () => { 
+      navigator.clipboard.writeText(BTC);
+      const fb = document.getElementById('copy-feedback');
+      fb.classList.add('show');
+      setTimeout(() => fb.classList.remove('show'), 1500);
+    };
+
+    document.getElementById('search-bar').oninput = (e) => {
+      const cat = document.querySelector('[data-cat].active')?.dataset.cat || 'all';
+      renderCards(cat, e.target.value);
+    };
+
+    document.querySelectorAll('[data-cat]').forEach(b => {
+      b.onclick = () => {
+        document.querySelectorAll('[data-cat]').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        const search = document.getElementById('search-bar').value;
+        renderCards(b.dataset.cat, search);
+      };
+    });
+
+    const saved = localStorage.getItem('rak_cart');
+    if (saved) {
+      state.cart = JSON.parse(saved);
+      updateCart();
+    }
+
+    goTo('home');
+  </script>
+</body>
+</html>
